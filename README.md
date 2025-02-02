@@ -11,11 +11,11 @@
 ## 😁 팀 소개
 <table style="width: 100%; text-align: center;">
   <tr>
-    <th><a href="https://github.com/member1">팀원 1</a></th>
-    <th><a href="https://github.com/member2">팀원 2</a></th>
-    <th><a href="https://github.com/member3">팀원 3</a></th>
-    <th><a href="https://github.com/member4">팀원 4</a></th>
-    <th><a href="https://github.com/member5">팀원 5</a></th>
+    <th><a href="https://github.com/privetin">김정석</a></th>
+    <th><a href="https://github.com/jduck301">서재덕</a></th>
+    <th><a href="https://github.com/son0179">손익준</a></th>
+    <th><a href="https://github.com/WHY1862">원호영</a></th>
+    <th><a href="https://github.com/LeSaUi">이상의</a></th>
   </tr>
 </table>
 
@@ -63,7 +63,7 @@ python run.py
 ## 개발 환경
 ### 하드웨어
 - **서버**: 실험 및 학습을 위한 GPU 서버 활용
-  - GPU: NVIDIA A100 40GB
+  - GPU: NVIDIA V100 40GB
   - Storage: 200GB SSD
 
 ### 소프트웨어
