@@ -1,0 +1,11 @@
+uvicorn==0.34.0
+fastapi==0.115.6
+transformers==4.48.0
+streamlit==1.41.1
+psycopg2-binary==2.9.10
+SQLAlchemy
+openai==1.59.9
+langchain==0.3.14
+langchain_community==0.3.14
+langchain_huggingface==0.1.2
+langchain_google_genai==2.0.9
