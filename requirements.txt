@@ -1,4 +1,7 @@
 python-dotenv==1.0.0
-pydantic==1.10.13
+# Using pydantic v1 to avoid Rust dependency required by v2
+# Can upgrade later if needed (SQLModel supports both v1 and v2)
+pydantic==1.10.14
 pytest==7.4.3
 requests==2.31.0
+sqlmodel==0.0.14
