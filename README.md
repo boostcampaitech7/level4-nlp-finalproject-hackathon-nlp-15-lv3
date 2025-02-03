@@ -32,6 +32,12 @@
 ## 프로젝트 아키텍처
 - PDF Parser → embedding/VectorDB → RAG System → LLM → REST API
 
+### 디렉토리 구조
+- `src/table_extraction/`: 테이블 추출 메인 모듈
+  - `models.py`: 테이블과 메타데이터를 위한 데이터 모델
+  - `extractor.py`: Claude를 사용한 테이블 추출 핵심 로직
+
+
 ## 평가 기준
 ### (필수)
 1. **정량 평가 (50%)**: 테스트셋 질의에 대한 답변 성능 평가 (G-Eval 등 활용)
@@ -49,15 +55,17 @@
 
 ## Usage
 ### Requirements
+ * 의존성 모듈 설치
 ```bash
 pip install -r requirements.txt
 ```
 
-### Command
-```bash
-cd ./stock_llm_service/src
-python run.py
+ * Claude API key 포함한 '.env' 파일 생성.
 ```
+ANTHROPIC_API_KEY=your_api_key_here
+```
+### Command
+''' TODO '''
 
 # Appendix
 ## 개발 환경
@@ -80,4 +88,3 @@ python run.py
 - **Notion**: 프로젝트 문서화 및 일정 관리.
 - **Slack & Zoom**: 팀 내 소통 및 회의 진행.
 - **pre-commit**: 코드 스타일 및 품질 유지.
-
