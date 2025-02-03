@@ -16,7 +16,7 @@ tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModel.from_pretrained(MODEL_NAME)
 
 # ✅ ChromaDB 저장 경로 설정
-CHROMA_DB_DIR = "/data/ephemeral/VectorDB/kffDB"
+CHROMA_DB_DIR = "/data/ephemeral/VectorDB/kfDB"
 
 # ✅ 텍스트 전처리 함수
 def clean_text(text):
