@@ -1,9 +1,9 @@
 import os
 import pytest
 from datetime import date
-from src.table_extraction import TableExtractor
+from src.extraction import TableExtractor
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "data")
 
 def test_metadata_parsing():
     extractor = TableExtractor()
@@ -15,20 +15,27 @@ def test_metadata_parsing():
 
 def test_table_extraction():
     """Test table extraction with a real stock analysis PDF"""
+    print("\nStarting test_table_extraction")
     extractor = TableExtractor()
+    print("Created extractor")
     
     # Get first PDF from data directory
     pdf_files = [f for f in os.listdir(DATA_DIR) if f.endswith('.pdf')]
+    print(f"Found {len(pdf_files)} PDF files")
     if not pdf_files:
         pytest.skip("No PDF files found in data directory")
     
     pdf_path = os.path.join(DATA_DIR, pdf_files[0])
+    print(f"Testing with PDF: {pdf_path}")
     tables = extractor.extract_tables(pdf_path)
+    print(f"Extracted {len(tables)} tables")
     assert isinstance(tables, list)
     assert len(tables) > 0, "Should extract at least one table"
     
     # Check first table structure
     first_table = tables[0]
+    print(f"First table headers: {first_table.headers}")
+    print(f"First table rows: {len(first_table.rows)} rows")
     assert len(first_table.headers) > 0, "Table should have headers"
     assert len(first_table.rows) > 0, "Table should have data rows"
     assert first_table.metadata.page_number > 0, "Page number should be set"
