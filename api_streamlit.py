@@ -9,7 +9,7 @@ import logging
 import requests
 import uvicorn
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+
 from transformers import HfArgumentParser
 import sentence_transformers
 
@@ -41,16 +41,7 @@ logger = logging.getLogger(__name__)
 parser = HfArgumentParser((FastApiArgument,))
 (fastapi_args,) = parser.parse_args_into_dataclasses()
 app = FastAPI()
-# CORS 설정 추가
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],      # 개발 단계에서는 * 로 전체 허용
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
-#API Key 설정
 os.environ["OPENAI_API_KEY"] = ""
 
 load_dotenv()
