@@ -7,6 +7,7 @@ GOOGLE_CX=your_google_cx
 
 ```
 
+Run commands
 ```
 pip install -r requirements.txt
 streamlit run chat.py
