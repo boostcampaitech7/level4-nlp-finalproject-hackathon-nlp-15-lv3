@@ -28,6 +28,7 @@ cur.execute("CREATE TABLE IF NOT EXISTS UserTable (username VARCHAR(16), passwor
 cur.execute("INSERT INTO UserTable VALUES ('test', 'test');")
 
 cur.execute("SELECT * FROM UserTable;")
+cur.execute("SELECT * FROM ChatTable;")
 table = cur.fetchall()
 
 for row in table:

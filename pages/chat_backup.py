@@ -7,6 +7,7 @@ import os
 from typing import List, Dict, Any
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
+from streamlit_extras.stateful_button import button
 import requests
 import argparse
 
@@ -79,7 +80,8 @@ def logging(messages):
     cursor = conn.cursor()
 
     for message in messages:
-        cursor.execute(f"INSERT INTO ChatTable VALUES ('{st.session_state['user_name']}', datetime('now'), '{message['role']}', '{message['content']}');")
+        #cursor.execute(f"INSERT INTO ChatTable VALUES ('{st.session_state['user_name']}', datetime('now'), '{message['role']}', '{message['content']}');")
+        cursor.execute("INSERT INTO ChatTable VALUES (?, ?, datetime('now'), ?)", (st.session_state['user_name'], message['role'], message['content']))
     conn.commit()
 
 def chat(args: argparse.Namespace) -> None:
@@ -132,7 +134,14 @@ def chat(args: argparse.Namespace) -> None:
             st.markdown(message["content"])
 
     # Accept user input
-    if prompt := st.chat_input("Type here"):
+    web_search_button, chat_input = st.columns([1,12])
+    #a = web_search_toggle.toggle("Web Search")
+    do_web_search = False
+    with web_search_button:
+        do_web_search = button("Web Search", key="web_search_button")
+    prompt = chat_input.chat_input("Type here")
+
+    if prompt:# := st.chat_input("Type here"):
         # Add user message to chat history
         if prompt:
             st.session_state.messages.append({"role": "user", "content": prompt})
@@ -141,7 +150,11 @@ def chat(args: argparse.Namespace) -> None:
             st.markdown(prompt)
 
         # Get chatbot response
-        response = request_api(st.session_state.messages, args.chat_api)
+        if do_web_search:
+            response = request_api(st.session_state.messages, args.server_api+"/chat_web")
+        else:
+            response = request_api(st.session_state.messages, args.chat_api)
+        
         def _genertor():
             for chunk in response:
                 yield chunk.decode("utf-8")
@@ -182,6 +195,7 @@ if __name__ == "__main__":
         st.session_state["db_exists"] = True
 
     parser = argparse.ArgumentParser()
+    parser.add_argument("--server_api", type=str, default="http://localhost:8000/")
     parser.add_argument("--chat_api", type=str, default="http://localhost:8000/chat")
     parser.add_argument("--title", type=str, default="RAG Chatbot Demo")
     main(parser.parse_args())
