@@ -42,6 +42,21 @@ class ChatItem(Identification):
     stream: bool = False
 # ChatOutput is not defined here, but it is defined in the API server code directly.
 
+"""
+class GenItem(ChatItem):
+    query: str
+
+class GenOutput(Identification):
+    answer: str
+    context: str
+"""
+
+class WebItem():
+    query: str
+
+class WebOutput(Identification):
+    context: List
+
 class RagItem(ChatItem):
     query: str
 
