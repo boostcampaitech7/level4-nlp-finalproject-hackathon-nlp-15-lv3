@@ -1,168 +1,90 @@
-# 주식 분석 테이블 추출/처리/저장
+# 📕 프로젝트 개요: 증권사 자료 기반 주식 LLM 서비스 개발
 
-주식 분석 PDF 보고서의 테이블 처리를 담당하는 모듈입니다. PDF에서 테이블을 추출하고, 정제/구조화하여 데이터베이스에 저장합니다.
+- **프로젝트 목표**: PDF 문서로부터 유용한 정보를 추출하고, 이를 기반으로 주식 관련 질의에 대해 정확한 답변을 제공하는 LLM 서비스 개발
+- **핵심 기능**:
+  - PDF 문서에서 텍스트 및 그래프 등 정보 추출
+  - 데이터 레포지토리 구축 (GraphDB, VectorDB 등 활용)
+  - 쿼리에 대해 최적의 데이터를 찾는 RAG 시스템 구현
+  - 프롬프트 엔지니어링 및 답변 생성
+  - Q&A 기능을 통한 정량 평가 수행
+  
+## 😁 팀 소개
+<table style="width: 100%; text-align: center;">
+  <tr>
+    <th><a href="https://github.com/privetin">김정석</a></th>
+    <th><a href="https://github.com/jduck301">서재덕</a></th>
+    <th><a href="https://github.com/son0179">손익준</a></th>
+    <th><a href="https://github.com/WHY1862">원호영</a></th>
+    <th><a href="https://github.com/LeSaUi">이상의</a></th>
+  </tr>
+</table>
 
-## 요구사항
+## 📆 세부 일정
+- 프로젝트 기간: 2025.1.10 ~ .2.12
 
-- Python 3.8 이상
-- Claude API 키
+## 프로젝트 주요 모듈
+- **PDF 정보 추출**: 텍스트 및 그래프 등 핵심 정보 파싱
+- **데이터베이스 구축**: GraphDB, VectorDB를 활용한 효율적 데이터 저장 및 검색
+- **RAG (Retrieval-Augmented Generation) 시스템**: 적절한 문서 검색 및 최적의 답변 생성
+- **프롬프트 엔지니어링**: 효과적인 질의 응답을 위한 프롬프트 설계
+- **REST API 구현**: 질의 입력 시 답변을 제공하는 API 서비스 구축
 
-## 설치 방법
+## 프로젝트 아키텍처
+- PDF Parser → embedding/VectorDB → RAG System → LLM → REST API
 
-1. 가상 환경 생성:
-```bash
-python -m venv env
-source env/bin/activate  # Linux/Mac
-.\env\Scripts\activate   # Windows
-```
+### 디렉토리 구조
+- `src/table_extraction/`: 테이블 추출 메인 모듈
+  - `models.py`: 테이블과 메타데이터를 위한 데이터 모델
+  - `extractor.py`: Claude를 사용한 테이블 추출 핵심 로직
 
-2. 의존성 설치:
+
+## 평가 기준
+### (필수)
+1. **정량 평가 (50%)**: 테스트셋 질의에 대한 답변 성능 평가 (G-Eval 등 활용)
+2. **정성 평가 (50%)**: 서비스 창의성, 유용성, 개발 완성도, 소스코드 품질 및 문서화 수준
+
+## 프로젝트 결과
+### Baseline
+(결과 이미지 추가 예정)
+
+### Mid
+(결과 이미지 추가 예정)
+
+### Final
+(결과 이미지 추가 예정)
+
+## Usage
+### Requirements
+ * 의존성 모듈 설치
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Claude API 키 설정:
-```bash
-# .env 파일 생성
+ * Claude API key 포함한 '.env' 파일 생성.
+```
 ANTHROPIC_API_KEY=your_api_key_here
 ```
+### Command
+''' TODO '''
 
-## 프로젝트 구조
+# Appendix
+## 개발 환경
+### 하드웨어
+- **서버**: 실험 및 학습을 위한 GPU 서버 활용
+  - GPU: NVIDIA V100 40GB
+  - Storage: 200GB SSD
 
-```
-src/
-├── models.py               # 공통 데이터 모델
-├── extraction/            # 테이블 추출 모듈
-│   ├── __init__.py
-│   └── extractor.py       # Claude API 기반 추출 로직
-├── processing/            # 테이블 처리 모듈
-│   ├── __init__.py
-│   └── processor.py       # 데이터 정제 및 구조화 로직
-└── storage/              # 테이블 저장 모듈
-    ├── __init__.py
-    └── storer.py         # SQLite 저장 로직
+### 소프트웨어
+- **Python 3.10**
+- **PyTorch 2.X**
+- **HuggingFace Transformers**
+- **LangChain**
+- **DVC**
+- **FastAPI**
+- **Jupyter Notebook**
 
-tests/
-├── extraction/           # 추출 모듈 테스트
-├── processing/          # 처리 모듈 테스트
-└── storage/             # 저장 모듈 테스트
-```
-
-## 기능 설명
-
-### 1. 테이블 추출 (extraction)
-
-PDF 파일에서 테이블을 자동으로 추출합니다.
-
-```python
-from datetime import date
-from src.extraction.extractor import TableExtractor
-
-extractor = TableExtractor()
-
-# PDF에서 테이블 추출
-tables = extractor.extract_tables("path/to/20240101-samsung-kiwoom.pdf")
-```
-
-### 2. 테이블 처리 (processing)
-
-추출된 테이블 데이터를 정제하고 구조화된 형태로 변환합니다.
-
-#### 주요 기능
-
-- 테이블 헤더 정제
-  - 불필요한 공백 제거
-  - 줄바꿈 처리
-  - 필수 문자 보존 (알파벳, 숫자, (), %, 배)
-- 셀 데이터 정제
-  - 불필요한 공백 제거
-  - 빈 값 처리 (-, N/A)
-  - 줄바꿈 처리
-- 메타데이터 관리 (파일명, 기업명, 증권사, 보고서 일자 등)
-
-#### 사용 예시
-
-```python
-from datetime import date
-from src.processing.processor import TableProcessor
-from src.models import TableMetadata
-
-# 메타데이터 설정
-metadata = TableMetadata(
-    file_name="20240101-samsung-kiwoom.pdf",
-    company="samsung",
-    securities_firm="kiwoom",
-    report_date=date(2024, 1, 1),
-    page_number=1
-)
-
-# 원본 테이블 데이터 예시
-raw_table = {
-    "page_number": 1,
-    "description": "분기별 실적",
-    "headers": ["항목", "Q1", "Q2", "Q3", "Q4"],
-    "rows": [
-        ["항목 1", "1,234", "2,345", "3,456", "4,567"],
-        ["항목 2", "5,678", "6,789", "7,890", "8,901"]
-    ]
-}
-
-# 테이블 처리
-processor = TableProcessor()
-processed_table = processor.process_table(raw_table, metadata)
-```
-
-### 3. 테이블 저장 (storage)
-
-추출되고 처리된 테이블을 SQLite 데이터베이스에 저장합니다.
-
-#### 데이터베이스 스키마
-
-- `Table` - 테이블 메타데이터 (파일명, 회사명, 증권사, 보고서 날짜, 페이지 번호)
-- `TableHeader` - 테이블 헤더 정보 (텍스트, 위치)
-- `TableRow` - 테이블 행 정보 (위치)
-- `TableCell` - 테이블 셀 데이터 (텍스트, 위치)
-
-#### 사용 방법
-
-```python
-from src.storage import init_db, get_session
-from src.storage.storer import TableStorer
-
-# 데이터베이스 초기화
-init_db()
-
-# 세션 생성
-with next(get_session()) as session:
-    # 테이블 저장
-    storer = TableStorer(session)
-    stored_table = storer.store_table(table_data)
-```
-
-저장된 테이블은 `data/tables.db` SQLite 파일에서 확인할 수 있습니다.
-
-## 테스트
-
-모든 테스트 실행:
-```bash
-python -m pytest
-```
-
-특정 모듈 테스트:
-```bash
-python -m pytest tests/extraction/    # 추출 모듈 테스트
-python -m pytest tests/processing/   # 처리 모듈 테스트
-python -m pytest tests/storage/      # 저장 모듈 테스트
-```
-
-통합 테스트 (외부 API 호출 포함):
-```bash
-python -m pytest -m integration
-```
-
-### 다음 단계
-
-1. 검색 (retrieval)
-   - 저장된 테이블 검색 API 구현
-   - 테이블 검색 및 필터링 기능
-   - 데이터 포맷팅 및 변환 옵션
+### 협업 및 프로젝트 관리 도구
+- **GitHub**: 코드 버전 관리 및 협업. GitHub Flow 활용.
+- **Notion**: 프로젝트 문서화 및 일정 관리.
+- **Slack & Zoom**: 팀 내 소통 및 회의 진행.
+- **pre-commit**: 코드 스타일 및 품질 유지.
