@@ -8,37 +8,16 @@ from typing import List, Dict, Any
 import streamlit as st
 from streamlit_extras.switch_page_button import switch_page
 from streamlit_extras.stateful_button import button
-from streamlit_extras.stylable_container import stylable_container
-from streamlit_float import *
-
 import requests
 import argparse
 
 import sqlite3 as sqlite
 
-
+#st.title("chat")
 st.set_page_config(layout='wide')
-
-html_code = """
-            <script>
-            
-            function sc(){
-                window.onload = function() {
-                window.scrollTo(0, stChatMessage.scrollHeight);
-                };
-            }
-            </script>
-            """
-components.html(html_code, height=0)
-
-question = ""
-
-float_init()
 
 #col1, _, col2, col3, col4 = st.columns(5)
 _, col3, col4 = st.columns([10, 1, 1])
-col3.float()
-col4.float()
 
 if "user_name" not in st.session_state:
     st.session_state["user_name"] = ""
@@ -90,14 +69,7 @@ def request_api(messages: List[Dict[str, Any]], url: str):
     response = requests.post(url, json=data, stream=True)
     return response
 
-def scroll_bottom():
-    html_code = f"""
-                <script>
-                sc();
-                </script>
-                """
-    components.html(html_code, height=0)
-    
+
 def logging(messages):
 
     # db conn
@@ -109,7 +81,7 @@ def logging(messages):
 
     for message in messages:
         #cursor.execute(f"INSERT INTO ChatTable VALUES ('{st.session_state['user_name']}', datetime('now'), '{message['role']}', '{message['content']}');")
-        cursor.execute("INSERT INTO ChatTable VALUES (?, datetime('now'), ?, ?)", (st.session_state['user_name'], message['role'], message['content']))
+        cursor.execute("INSERT INTO ChatTable VALUES (?, ?, datetime('now'), ?)", (st.session_state['user_name'], message['role'], message['content']))
     conn.commit()
 
 def chat(args: argparse.Namespace) -> None:
@@ -118,9 +90,6 @@ def chat(args: argparse.Namespace) -> None:
     :param args:
     :return:
     """
-
-    #global prompt, do_web_search, response
-    #global question
 
     # Title
     #st.title(args.title)
@@ -160,140 +129,44 @@ def chat(args: argparse.Namespace) -> None:
     # Display chat messages from history on app rerun
 
     #print(st.session_state)
-    #with st.container():
     for message in st.session_state.history:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
-    
-    if st.get_option("theme.base") == "light":
-        background_color = "white"
-        text_color = "black"
-    else:
-        background_color = "#0E1117"
-        text_color = "white"
 
-    st.markdown(f"""
-        <style>
-        .fixed-bottom {{
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            background-color: {background_color};
-            color: {text_color};
-            padding: 45px;
-            box-shadow: 0 0px 0px rgba(0,0,0,0);
-            display: flex;
-            justify-content: space-between;
-            z-index: 9998;
-        }}
-        </style>
-    """, unsafe_allow_html=True)
-
-
-    # Create a div container at the bottom
-    st.markdown('<div class="fixed-bottom" id="fixed_bottom"></div>', unsafe_allow_html=True)
-    
-    # 세션 상태에 선택된 질문이 없으면 초기화
-    if 'selected_question' not in st.session_state:
-        st.session_state.selected_question = ""
-
-    prompt = ""
+    # Accept user input
+    web_search_button, chat_input = st.columns([1,12])
+    #a = web_search_toggle.toggle("Web Search")
     do_web_search = False
+    with web_search_button:
+        do_web_search = button("Web Search", key="web_search_button")
+    prompt = chat_input.chat_input("Type here")
 
-    with stylable_container(
-            key="chat_input_container",
-            css_styles="""
-                {
-                    position: fixed;
-                    bottom: 50px;
-                    z-index: 9999;
-                }
-                """,
-        ):
-        col1, col2 = st.columns([1,11])
-        #do_web_search = col1.button("Web Search")
-        with col1:
-            do_web_search = button("Web Search", key="web_search_button")
-        
-        prompt = col2.chat_input("Type here!")
-        
-        if st.session_state.selected_question:
-            prompt = st.session_state.selected_question
-            st.session_state.selected_question = ""
-        
-    if prompt:
+    if prompt:# := st.chat_input("Type here"):
         # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-
+        if prompt:
+            st.session_state.messages.append({"role": "user", "content": prompt})
+        # Display user message in chat message container
         with st.chat_message("user"):
             st.markdown(prompt)
 
         # Get chatbot response
-        response = ""
-
-        cont = st.empty()
-        with cont.container():
-            with st.status("Answering...", expanded=False):
-                if do_web_search:
-                    response = request_api(st.session_state.messages, args.server_api+"/chat_web")
-                else:
-                    response = request_api(st.session_state.messages, args.chat_api)
-        cont.empty()
+        if do_web_search:
+            response = request_api(st.session_state.messages, args.server_api+"/chat_web")
+        else:
+            response = request_api(st.session_state.messages, args.chat_api)
+        
+        def _genertor():
+            for chunk in response:
+                yield chunk.decode("utf-8")
 
         with st.chat_message("assistant"):
-            response = st.write_stream(stream_generator(response))
+            response = st.write_stream(_genertor())
 
         # Add chatbot response to chat history
         st.session_state.messages.append({"role": "assistant", "content": response})
 
         if "user_name" in st.session_state:# and st.session_state["user_name"]:
             logging(st.session_state.messages)
-
-
-        scroll_bottom()
-
-
-        #st.write("추천 질문:")
-
-        def update_question():
-            st.session_state.selected_question = st.session_state.radio_question
-
-        cont = st.empty()
-        with cont.container():
-            with st.status("Recommended questions:", expanded=True):
-                response = request_api(st.session_state.messages, args.server_api+"/recommend_questions")
-        
-
-                #st.write_stream(stream_generator(response))
-                questions = stream_to_string(response).strip().split("@")[1:]
-                
-                st.session_state.questions = questions
-                st.session_state.selected_question = st.radio(
-                    "추천 질문:",
-                    st.session_state.questions,
-                    index=None,
-                    key="radio_question",
-                    on_change=update_question,
-                    label_visibility="hidden",
-                )
-        
-        if st.session_state.selected_question:
-            cont.empty()
-            #del st.session_state.questions
-        #else:
-        #    st.rerun()
-
-def stream_generator(response):
-    for i,chunk in enumerate(response):
-        #if i%10==0:scroll_bottom()
-        yield chunk.decode("utf-8")
-
-def stream_to_string(response):
-    res = ""
-    for i,chunk in enumerate(response):
-        res += chunk.decode("utf-8")
-    return res
 
 def settings():
     st.title("Settings")
