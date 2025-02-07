@@ -1,5 +1,6 @@
 import os
 import re
+import datetime
 from dotenv import load_dotenv
 from typing import Generator
 import asyncio
@@ -243,10 +244,16 @@ async def web_search(item: RetrievalItem) -> RetrievalOutput:
             doc = {'id':str(i), 'text': "", 'metadata': {}, 'score':1}
             if 'snippet' in web_item:
                 doc['text'] = web_item['snippet']
+            if 'link' in web_item:
+                tmp_link = f"([link]({web_item['link']}))"
+                if 'title' in web_item:
+                    tmp_link = tmp_link.replace("([link]", f"([{web_item['title']}]")
+                doc['text'] += tmp_link
             if 'metadata' in web_item:
                 doc['metadata'] = web_item['metadata'][0]
             elif 'metatags' in web_item:
                 doc['metadata'] = web_item['metatags'][0]
+            
             docs += [doc]
     else:
         print("Web search results not found.")
@@ -287,16 +294,17 @@ async def web_rag(item: RagItem) -> RagOutput:
 
 
     prompt_template = \
-        """
+        f"""
         다음 정보들을 참고하여 중요한 내용들만 답변하도록 한다.
         각 문맥별로 설명할 수 있는 부분을 설명한다.
         알기 힘든 주식 및 금융 용어들은 부가적으로 설명한다.
         복잡한 내용은 다시 풀어서 설명하도록 한다.
         차근차근 답변하도록 한다.
+        ([title 또는 link](url))가 붙은 문장에 대해 참고해서 답변을 생성할 때 해당 답변 내용 바로 뒤에 해당 ([title 또는 link](url)) 양식 그대로 출력해라. 이때, ([title 또는 link](url))에 대한 설명은 일절 하지 않는다. 해당 양식은 문장의 끝이 아닌 문맥에 따라 적절히 위치하도록 한다.
 
-        질문 관련 문서: {context}
+        질문 관련 문서: {{context}}
 
-        질문: {query}
+        질문: {{query}}
 
         답변:
         """
@@ -521,12 +529,11 @@ async def recommend_questions(item: ChatItem):
     prompt_template = \
         """
         다음 정보들을 참고하여 5가지 후속 질문을 추천하도록 한다.
-        기업, 종목, 주식, 주가, 주주 가치 재고 전망에 대한 질문이어도 좋다.
-        관련하여 세계 경제에 대한 질문이어도 좋다.
+        기업, 종목, 주식, 주가, 주주 가치 제고, 향후 전망에 대한 질문이어도 좋고 아니어도 좋다.
+        관련하여 세계 경제에 대한 질문이어도 좋고 아니어도 좋다.
         생각하지 못한 관점 또는 창의적인 관점에서 질문 5가지를 추천하도록 한다.
-        각 질문은 한 문장으로 구성되며 그럼에도 직관적이어야 한다.
+        각 질문은 한 문장으로 구성되어 간결하면서도 그럼에도 직관적이어야 한다.
         양식은 질문 앞에 @ 특수기호를 붙여서 각 질문을 구분할 수 있도록 한다.
-
         질문: {query}
 
         추천 질문:
