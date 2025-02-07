@@ -10,12 +10,12 @@ import requests
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+
 from transformers import HfArgumentParser
 import sentence_transformers
 
 from langchain import hub
-from langchain.chains import create_retrieval_chain, LLMChain
-from langchain.chains import RetrievalQA
+from langchain.chains import create_retrieval_chain, LLMChain, ConversationChain, RetrievalQA
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chat_models import ChatOpenAI
 from langchain_huggingface import HuggingFacePipeline, HuggingFaceEmbeddings
@@ -24,6 +24,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 from langchain.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain.memory import ConversationBufferWindowMemory
 
 from utils import (
     IndexingItem,
@@ -50,7 +51,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-#API Key 설정
+# API KEY 설정
 os.environ["OPENAI_API_KEY"] = ""
 
 load_dotenv()
@@ -62,9 +63,10 @@ GOOGLE_CX = os.getenv("GOOGLE_CX")
 llm = ChatGoogleGenerativeAI(
     model="gemini-1.5-flash",
     temperature=0,
-    max_output_tokens=800,
+    max_output_tokens=1024, # limit 8192
     google_api_key=GOOGLE_API_KEY
 )
+memory = ConversationBufferWindowMemory(input_key="history", k=3)
 
 @app.post("/indexing")
 async def indexing(item: IndexingItem) -> IndexingOutput:
@@ -299,19 +301,30 @@ async def web_rag(item: RagItem) -> RagOutput:
 
     messages = item.messages[:-1] + [{"role": "user", "content": content}]
 
-    logger.info(f"[TEST] Chat messages:\n\n{messages}")
+    logger.info(f"[web_rag] Chat messages:\n\n{messages}")
 
 
     prompt_template = \
         f"""
-        다음 정보들을 참고하여 중요한 내용들만 답변하도록 한다.
+        다음 정보들을 참고하여 중요한 내용들에 집중하여 질문에 답변한다.
         각 문맥별로 설명할 수 있는 부분을 설명한다.
         알기 힘든 주식 및 금융 용어들은 부가적으로 설명한다.
         복잡한 내용은 다시 풀어서 설명하도록 한다.
         차근차근 답변하도록 한다.
-        ([title 또는 link](url))가 붙은 문장에 대해 참고해서 답변을 생성할 때 해당 답변 내용 바로 뒤에 해당 ([title 또는 link](url)) 양식 그대로 출력해라. 이때, ([title 또는 link](url))에 대한 설명은 일절 하지 않는다. 해당 양식은 문장의 끝이 아닌 문맥에 따라 적절히 위치하도록 한다.
+        ([title 또는 link](url))가 붙은 문장에 대해 답변을 생성할 때 해당 답변 바로 뒤에 해당 ([title 또는 link](url)) 양식 그대로 출력한다. 
+        ([title 또는 link](url))에 대한 설명은 일절 하지 않는다. 해당 양식은 문맥에 따라 적절히 위치하도록 한다. 
+        link 예시를 참고해서 양식을 반드시 지키며 답변한다.
+        link 예시: A sentence. ([title 또는 link](url)) B sentence. ([title 또는 link](url)) C sentence. ([title 또는 link](url))
 
-        질문 관련 문서: {{context}}
+        이전 대화 내용은 문맥을 파악하기 위해 참고하되 굳이 다시 언급하지 않는다.
+        이전 대화 내용을 물어보면 같이 답변한다.
+        질문과 질문 관련 내용에 집중해서 답변한다.
+        사용자로부터 주어지는 정보는 질문뿐이다. 사용자는 질문 외에는 어떤 정보가 주어졌는지 알지 못하기 때문에 어떤 정보가 주어졌다고 언급하지 않는다.
+        질문 관련 내용은 이미 알고 있는 지식으로서 제공 받은 정보가 아니기 때문에 제공 받았다거나 주어진 정보라고 말하지 않는다.
+
+        이전 대화 내용: {{history}}
+
+        질문 관련 내용: {{context}}
 
         질문: {{query}}
 
@@ -319,15 +332,21 @@ async def web_rag(item: RagItem) -> RagOutput:
         """
 
     prompt = PromptTemplate(
-        input_variables=["context", "query"],
+        input_variables=["history", "context", "query"],
         template=prompt_template,
     )
 
     #qa_chain = prompt | llm
     qa_chain = LLMChain(
         llm=llm,
-        prompt=prompt
+        prompt=prompt,
+        memory=memory,
     )
+    #qa_chain = ConversationChain(
+    #    llm=llm,
+    #    prompt=prompt,
+    #    memory=memory
+    #)
     
     result = qa_chain.run({
         "context": context,
@@ -367,33 +386,47 @@ async def rag(item: RagItem) -> RagOutput:
 
     messages = item.messages[:-1] + [{"role": "user", "content": content}]
 
-    logger.info(f"[TEST] Chat messages:\n\n{messages}")
+    logger.info(f"[rag] Chat messages:\n\n{messages}")
 
     prompt_template = \
-        """
-        다음 정보들을 참고하여 중요한 내용들만 답변하도록 한다.
+        f"""        
+        다음 정보들을 참고하여 중요한 내용들에 집중하여 질문에 답변한다.
         각 문맥별로 설명할 수 있는 부분을 설명한다.
         알기 힘든 주식 및 금융 용어들은 부가적으로 설명한다.
         복잡한 내용은 다시 풀어서 설명하도록 한다.
         차근차근 답변하도록 한다.
+        이전 대화 내용은 문맥을 파악하기 위해 참고하되 굳이 다시 언급하지 않는다.
+        이전 대화 내용을 물어보면 같이 답변한다.
+        질문과 질문 관련 내용에 집중해서 답변한다.
+        사용자로부터 주어지는 정보는 질문뿐이다. 사용자는 질문 외에는 어떤 정보가 주어졌는지 알지 못하기 때문에 어떤 정보가 주어졌다고 언급하지 않는다.
+        질문 관련 내용은 이미 알고 있는 지식으로서 제공 받은 정보가 아니기 때문에 제공 받았다거나 주어진 정보라고 말하지 않는다.
 
-        질문 관련 문서: {context}
+        이전 대화 내용 : {{history}}
 
-        질문: {query}
+        질문 관련 내용: {{context}}
+
+        질문: {{query}}
 
         답변:
         """
 
     prompt = PromptTemplate(
-        input_variables=["context", "query"],
+        input_variables=["history", "context", "query"],
         template=prompt_template,
     )
 
     #qa_chain = prompt | llm
     qa_chain = LLMChain(
         llm=llm,
-        prompt=prompt
+        prompt=prompt,
+        memory=memory,
     )
+
+    #qa_chain = ConversationChain(
+    #    llm=llm,
+    #    prompt=prompt,
+    #    memory=memory
+    #)
 
     result = qa_chain.run({
         "context": context,
@@ -537,7 +570,7 @@ async def recommend_questions(item: ChatItem):
 
     prompt_template = \
         """
-        다음 정보들을 참고하여 5가지 후속 질문을 추천하도록 한다.
+        질문과 다음 정보들을 참고하여 5가지 후속 질문을 추천하도록 한다.
         기업, 종목, 주식, 주가, 주주 가치 제고, 향후 전망에 대한 질문이어도 좋고 아니어도 좋다.
         관련하여 세계 경제에 대한 질문이어도 좋고 아니어도 좋다.
         생각하지 못한 관점 또는 창의적인 관점에서 질문 5가지를 추천하도록 한다.
@@ -558,6 +591,12 @@ async def recommend_questions(item: ChatItem):
         llm=llm,
         prompt=prompt
     )
+
+    #qa_chain = ConversationChain(
+    #    llm=llm,
+    #    prompt=prompt,
+    #    memory=memory
+    #)
 
     result = qa_chain.run({
         "query": query
