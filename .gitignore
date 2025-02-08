@@ -96,6 +96,7 @@ ehthumbs_vista.db
 [Dd]esktop.ini
 
 # Project specific
+test.db
 extracted_tables/
 logs/
 temp/

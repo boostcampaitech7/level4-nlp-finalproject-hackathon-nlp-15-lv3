@@ -63,6 +63,9 @@ pip install -r requirements.txt
  * Claude API key 포함한 '.env' 파일 생성.
 ```
 ANTHROPIC_API_KEY=your_api_key_here
+GOOGLE_API_KEY=your_google_api_key
+GOOGLE_SEARCH_API_KEY=your_google_search_api_key
+GOOGLE_CX=your_google_cx
 ```
 ### Command
 ''' TODO '''
