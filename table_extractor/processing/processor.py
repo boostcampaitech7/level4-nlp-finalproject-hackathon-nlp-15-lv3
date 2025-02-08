@@ -1,7 +1,7 @@
 import re
 from typing import Dict, List, Any
 
-from src.models import TableData, TableMetadata
+from table_extractor.models import TableData, TableMetadata
 
 class TableProcessor:
     """테이블 데이터 정제 및 구조화를 담당하는 클래스"""

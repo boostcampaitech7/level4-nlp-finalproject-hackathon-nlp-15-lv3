@@ -7,7 +7,7 @@ from typing import List, Dict, Any
 import requests
 from dotenv import load_dotenv
 
-from src.models import TableData, TableMetadata
+from table_extractor.models import TableData, TableMetadata
 
 class TableExtractor:
     """PDF에서 테이블을 추출하는 클래스"""
