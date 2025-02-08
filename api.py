@@ -10,7 +10,6 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from transformers import HfArgumentParser
-import sentence_transformers
 
 from langchain import hub
 from langchain.chains import create_retrieval_chain, LLMChain
