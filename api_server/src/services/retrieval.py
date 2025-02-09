@@ -1,10 +1,14 @@
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 from transformers import AutoTokenizer, AutoModel
 import torch
 from langchain.embeddings.base import Embeddings
-from typing import List
+from typing import List, Dict, Any
+import logging
 
 from core.config import settings
+from utils import RetrievalOutput  # Add this import
+logger = logging.getLogger(__name__)
+
 
 # kakaobank/kf-deberta-base 모델 초기화
 deberta_model_name = "kakaobank/kf-deberta-base"
@@ -12,7 +16,7 @@ tokenizer = AutoTokenizer.from_pretrained(deberta_model_name)
 model = AutoModel.from_pretrained(deberta_model_name)
 
 # ChromaDB 저장 경로
-CHROMA_DB_DIR = "/data/ephemeral/VectorDB/kffDB"
+CHROMA_DB_DIR = settings.vector_db["chroma_db_dir"]
 
 class DeBERTaEmbeddingFunction(Embeddings):
     """DeBERTa를 이용한 ChromaDB 임베딩 함수"""
@@ -40,49 +44,74 @@ def generate_text_embeddings(texts: List[str]) -> List[List[float]]:
     return embeddings
 
 # ChromaDB에서 검색 수행
-def search_in_chromadb(query: str, collection_name: str =settings.collection_name, top_k: int = 3):
+def search_in_chromadb(
+    query: str, 
+    collection_name: str = settings.collection_name, 
+    top_k: int = 3
+) -> RetrievalOutput:
     """저장된 ChromaDB에서 검색하며, 유사도 필터 없이 상위 K개 결과 반환."""
-    print("🔄 ChromaDB 연결 중...")
+    try:
+        logger.info("🔄 ChromaDB 연결 중...")
+        vectorstore = Chroma(
+            collection_name=collection_name,
+            embedding_function=DeBERTaEmbeddingFunction(),
+            persist_directory=CHROMA_DB_DIR,
+        )
 
-    # ChromaDB 로드
-    vectorstore = Chroma(
-        collection_name=collection_name,
-        embedding_function=DeBERTaEmbeddingFunction(),
-        persist_directory=CHROMA_DB_DIR,
-    )
+        num_docs = vectorstore._collection.count()
+        logger.info(f"✅ {collection_name} 현재 저장된 문서 개수: {num_docs}")
 
-    # ✅ ChromaDB에 저장된 데이터 개수 확인
-    num_docs = vectorstore._collection.count()
-    print(f"✅ 현재 저장된 문서 개수: {num_docs}")
+        if num_docs == 0:
+            logger.warning("❌ ChromaDB에 저장된 데이터가 없습니다.")
+            return RetrievalOutput(
+                id="empty",
+                name="empty",
+                group_id="empty",
+                related_documents=[{
+                    "id": "empty_doc",  # Added id field
+                    "text": "현재 데이터베이스에 저장된 문서가 없습니다. 관리자에게 문의해주세요.",
+                    "metadata": {},
+                    "score": 0
+                }]
+            )
 
-    if num_docs == 0:
-        print("❌ ChromaDB에 저장된 데이터가 없습니다. 먼저 데이터를 추가하세요.")
-        return []
+        # ✅ 쿼리 임베딩 생성
+        query_embedding = generate_text_embeddings([query])[0]
+        logger.info(f"✅ 생성된 쿼리 임베딩 길이: {len(query_embedding)}")
 
-    # ✅ 쿼리 임베딩 생성
-    query_embedding = generate_text_embeddings([query])[0]
-    print("✅ 생성된 쿼리 임베딩 길이:", len(query_embedding))
+        # 유사한 문서 검색 수행
+        results = vectorstore._collection.query(
+            query_embeddings=[query_embedding],
+            n_results=top_k
+        )
 
-    # 🔍 유사한 문서 검색 수행
-    results_with_scores = vectorstore._collection.query(
-        query_embeddings=[query_embedding],
-        n_results=top_k
-    )
+        # 결과 변환
+        documents = []
+        for idx, (doc, score) in enumerate(zip(results["documents"][0], results["distances"][0])):
+            documents.append({
+                "id": f"doc_{idx}",  # Added unique id for each document
+                "text": doc,
+                "metadata": {},
+                "score": float(score)
+            })
 
-    # ✅ 검색된 문서와 거리 값 확인
-    documents = results_with_scores["documents"][0]
+        return RetrievalOutput(
+            id="search_result",
+            name="search",
+            group_id="search",
+            related_documents=documents
+        )
 
-    print(f"✅ 검색된 문서 (최대 {top_k}개):", documents[:top_k])
-
-    # ✅ 검색 결과 변환
-    detailed_results = []
-    for result in documents:
-        answer = f"""
-        🔍 검색된 문서:
-        ----------------------------
-        📜 **내용:** {result}  
-        ----------------------------
-        """
-        detailed_results.append(answer)
-
-    return detailed_results
+    except Exception as e:
+        logger.error(f"ChromaDB 검색 중 오류 발생: {str(e)}")
+        return RetrievalOutput(
+            id="error",
+            name="error",
+            group_id="error",
+            related_documents=[{
+                "id": "error_doc",  # Added id field
+                "text": "검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                "metadata": {},
+                "score": 0
+            }]
+        )
