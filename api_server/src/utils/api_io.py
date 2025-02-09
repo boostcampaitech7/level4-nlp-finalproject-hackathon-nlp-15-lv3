@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from pydantic import BaseModel
 
@@ -63,4 +63,23 @@ class RagItem(ChatItem):
 class RagOutput(Identification):
     answer: str
     context: str
-   
+
+class Message(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    """Chat API Request Body"""
+    messages: List[Message]
+    stream: bool = False  # 스트리밍 여부 (기본값: False)
+    top_k: int = 3       # RAG 검색 결과 개수 (기본값: 3)
+
+class ApiResponse(BaseModel):
+    context: List[str]
+    answer: str
+
+class ApiRequest(BaseModel):
+    """Simple API request with just a query"""
+    query: str
+    stream: bool = False
+    top_k: int = 3
