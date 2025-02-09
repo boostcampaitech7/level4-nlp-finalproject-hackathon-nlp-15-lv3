@@ -1,9 +1,10 @@
 from langchain.vectorstores import Chroma
-from chromadb.config import Settings
 from transformers import AutoTokenizer, AutoModel
 import torch
 from langchain.embeddings.base import Embeddings
 from typing import List
+
+from core.config import settings
 
 # kakaobank/kf-deberta-base 모델 초기화
 deberta_model_name = "kakaobank/kf-deberta-base"
@@ -39,7 +40,7 @@ def generate_text_embeddings(texts: List[str]) -> List[List[float]]:
     return embeddings
 
 # ChromaDB에서 검색 수행
-def search_in_chromadb(query: str, collection_name: str, top_k: int = 3):
+def search_in_chromadb(query: str, collection_name: str =settings.collection_name, top_k: int = 3):
     """저장된 ChromaDB에서 검색하며, 유사도 필터 없이 상위 K개 결과 반환."""
     print("🔄 ChromaDB 연결 중...")
 
