@@ -4,7 +4,7 @@ import torch
 import numpy as np
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.vectorstores import Chroma
+from langchain_community.vectorstores import Chroma
 from langchain.embeddings.base import Embeddings
 from langchain.schema import Document
 from transformers import AutoTokenizer, AutoModel
@@ -20,7 +20,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CONFIG = settings.vector_db
 MODEL_NAME = CONFIG["model"]
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
-model = AutoModel.from_pretrained(MODEL_NAME)
+model = AutoModel.from_pretrained(MODEL_NAME).to("cuda" if torch.cuda.is_available() else "cpu")
 
 
 
@@ -46,7 +46,7 @@ def generate_text_embeddings(texts):
     if isinstance(texts, str):
         texts = [texts]
 
-    inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=512)
+    inputs = tokenizer(texts, return_tensors="pt", padding=True, truncation=True, max_length=512).to('cuda')
     
     with torch.no_grad():
         model_output = model(**inputs)
