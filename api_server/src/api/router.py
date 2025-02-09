@@ -11,11 +11,11 @@ api_router.include_router(
     tags=["chat"]
 )
 
-"""api_router.include_router(
+api_router.include_router(
     indexing.router,
     prefix="/indexing",
     tags=["indexing"]
-)"""
+)
 
 api_router.include_router(
     rag.router,
@@ -23,7 +23,7 @@ api_router.include_router(
     tags=["rag"]
 )
 
-"""api_router.include_router(
+api_router.include_router(
     retrieval.router,
     prefix="/retrieval",
     tags=["retrieval"]
@@ -40,6 +40,6 @@ api_router.include_router(
     prefix="/recommend",
     tags=["recommend"]
 )
-"""
+
 # 라우터 export
 __all__ = ["api_router"]
