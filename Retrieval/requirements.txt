@@ -1,5 +1,9 @@
-torch==2.1.0
-transformers==4.36.0
-chromadb==0.4.14
-langchain==0.1.0
+fastapi==0.110.0
+uvicorn==0.29.0
+pydantic==2.6.3
+torch==2.2.1
+transformers==4.39.3
+chromadb==0.4.24
+langchain==0.1.14
+langchain-community==0.0.30
 numpy==1.24.3
