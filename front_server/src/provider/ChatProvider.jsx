@@ -60,7 +60,7 @@ export default function ChatProvider({ children }) {
 
     try {
       // 새 API 호출
-      const response = await axios.post('http://localhost:8000/chat', payload);
+      const response = await axios.post('http://localhost:30002/chat', payload);
 
       // 2) API에서 반환된 데이터가 [{role: "...", content: "..."}] 형태라고 가정
       const data = response.data; 

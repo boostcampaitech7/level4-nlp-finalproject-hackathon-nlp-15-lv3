@@ -6,9 +6,9 @@
     "fs": false
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "export PORT=30003 && next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "export PORT=30003 && next start",
     "lint": "next lint"
   },
   "dependencies": {

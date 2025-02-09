@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     GOOGLE_SEARCH_API_KEY: str = os.getenv("GOOGLE_SEARCH_API_KEY", "")
     GOOGLE_CX: str = os.getenv("GOOGLE_CX", "")
     SERVER_HOST: str = "0.0.0.0"
-    SERVER_PORT: int = 8000
+    SERVER_PORT: int = 30002
     
     collection_name: str = "pdf_text_collection"
     
