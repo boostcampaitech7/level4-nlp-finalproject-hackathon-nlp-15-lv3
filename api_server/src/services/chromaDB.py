@@ -9,14 +9,23 @@ from langchain.embeddings.base import Embeddings
 from langchain.schema import Document
 from transformers import AutoTokenizer, AutoModel
 from typing import List
+import sys
+
+from core.config import settings
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 
 # ✅ 모델 불러오기
-MODEL_NAME = "kakaobank/kf-deberta-base"
+CONFIG = settings.vector_db
+MODEL_NAME = CONFIG["model"]
 tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME)
 model = AutoModel.from_pretrained(MODEL_NAME)
 
+
+
 # ✅ ChromaDB 저장 경로 설정
-CHROMA_DB_DIR = "/data/ephemeral/VectorDB/kfDB"
+CHROMA_DB_DIR = CONFIG["chroma_db_dir"]
 
 # ✅ 텍스트 전처리 함수
 def clean_text(text):
@@ -62,7 +71,7 @@ def process_pdf_to_chromadb(pdf_path, collection_name):
     pdf_docs = loader.load()
     print(f"✅ PDF에서 {len(pdf_docs)}개의 페이지를 로드함.")
 
-    text_splitter = CharacterTextSplitter(chunk_size=400, chunk_overlap=100)
+    text_splitter = CharacterTextSplitter(chunk_size=CONFIG["max_chunk_size"], chunk_overlap=CONFIG["num_chunk_overlap"])
     split_docs = []
     
     for doc in pdf_docs:
@@ -122,3 +131,9 @@ def process_all_pdfs_in_directory(directory, collection_name):
 
     for pdf_path in pdf_files:
         process_pdf_to_chromadb(pdf_path, collection_name)
+
+if __name__ == "__main__":
+    directory_path = "/data/ephemeral/home/level4-nlp-finalproject-hackathon-nlp-15-lv3/data" # 저장할 PDF폴더 경로로
+    collection_name = "pdf_text_collection" # 컬렉션 이름름
+
+    process_all_pdfs_in_directory(directory_path, collection_name)

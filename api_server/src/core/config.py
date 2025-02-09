@@ -21,9 +21,16 @@ class Settings(BaseSettings):
         "max_output_tokens": 1024,
     }
 
-    model_config = {
+    model_config: Dict[str, Any] = {
         "env_file": ".env",
         "case_sensitive": False
+    }
+    
+    vector_db: Dict[str, Any] = {
+        "model": "kakaobank/kf-deberta-base",
+        "chroma_db_dir": os.getenv("CHROMA_DB_DIR", "/data/ephemeral/chroma_db"),
+        "max_chunk_size": 1024,
+        "num_chunk_overlap": 256,
     }
 
 settings = Settings()
