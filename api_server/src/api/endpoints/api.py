@@ -32,7 +32,7 @@ async def api(
             return JSONResponse(content=ApiResponse(
                 context=[],
                 answer="검색 결과가 없습니다. 다른 질문을 해주세요."
-            ).dict())
+            ))
 
         # Context 생성
         context = "\n\n".join(doc.text for doc in related_documents.related_documents)
@@ -73,7 +73,7 @@ async def api(
         )
 
         if not request.stream:
-            return JSONResponse(content=response_data.dict())
+            return JSONResponse(content=response_data)
 
         async def generate_response() -> Generator:
             yield json.dumps({
@@ -101,4 +101,4 @@ async def api(
         return JSONResponse(content=ApiResponse(
             context=[],
             answer="서비스 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요."
-        ).dict())
+        ))
