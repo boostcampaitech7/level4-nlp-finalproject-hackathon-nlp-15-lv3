@@ -17,6 +17,9 @@ async def chat(
 ) -> Union[ChatResponse, FastAPIStreamingResponse]:
     """챗봇 대화 API"""
     
+    # Load conversation history
+    memory = get_memory(request.conversation_id)
+    
     # Convert Message objects to Utterance objects
     utterances = [
         Utterance(role=msg.role, content=msg.content) 
@@ -33,7 +36,8 @@ async def chat(
             top_k=request.top_k,
             stream=request.stream
         ),
-        llm=llm
+        llm=llm,
+        memory=memory  # Pass memory to rag
     )
 
     contents = re.split("( )", result.answer)

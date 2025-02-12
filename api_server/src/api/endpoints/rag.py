@@ -17,11 +17,12 @@ logger = logging.getLogger(__name__)
 @router.post("/")
 async def rag(
     item: RagItem,
-    llm = Depends(get_llm)
+    llm = Depends(get_llm),
+    memory = None
 ) -> RagOutput:
     try:
-        # load conversation history
-        memory = get_memory(item.id)
+        # Remove memory loading
+        # memory = get_memory(item.id)
         
         # Add delay before making the LLM call
         time.sleep(1)  # 1 second delay
@@ -79,9 +80,11 @@ async def rag(
         # Create a runnable sequence
         chain = prompt | llm
 
-        # Use invoke with appropriate context
+        # Use provided memory if available
+        history_buffer = memory.buffer if memory else []
+        
         result = chain.invoke({
-            "history": memory.buffer,
+            "history": history_buffer,
             "context": context,
             "query": query
         })
