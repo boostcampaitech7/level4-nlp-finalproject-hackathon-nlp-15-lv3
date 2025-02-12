@@ -1,88 +1,87 @@
 from fastapi import APIRouter, Depends
-from langchain.chains import create_retrieval_chain, LLMChain
 from langchain.prompts import PromptTemplate
 
-from utils import RagItem, RagOutput, RetrievalItem
+from models import RagItem, RagOutput, RetrievalItem
 from core.config import settings
 from services.retrieval import search_in_chromadb
 from services.llm import get_llm, get_memory
+from utils.prompts import RAG_TEMPLATE, CHAT_TEMPLATE
 
 import logging
+import time
+from datetime import datetime
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-
-@router.post("/rag")
+@router.post("/")
 async def rag(
     item: RagItem,
-    llm = Depends(get_llm),
-    memory = Depends(get_memory)
+    llm = Depends(get_llm)
 ) -> RagOutput:
     try:
-        related_documents = search_in_chromadb(
+        # load conversation history
+        memory = get_memory(item.id)
+        
+        # Add delay before making the LLM call
+        time.sleep(1)  # 1 second delay
+        
+        searched_docs = search_in_chromadb(
             query=item.query,
             collection_name=settings.collection_name,
             top_k=item.top_k
         )
 
-        if not related_documents:
-            return RagOutput(
-                id=item.id,
-                name=item.name,
-                group_id=item.group_id,
-                answer="검색 결과가 없습니다. 다른 질문을 해주세요.",
-                context=""
-            )
-
         query = item.query
-
-        # 검색 결과와 대화 메시지를 결합합니다.
         context = ""
         content = ""
-        if related_documents.related_documents:
-            context = "\n\n".join(doc.text for doc in related_documents.related_documents)
-            content = "{context}\n\n{query}".format(context=context, query=query)
 
-        messages = item.messages[:-1] + [{"role": "user", "content": content}]
+        # 검색 결과가 있을 경우 유사도 필터링 적용
+        if searched_docs and searched_docs.related_documents:
+            # 각 문서의 유사도 점수 로깅
+            for i, doc in enumerate(searched_docs.related_documents):
+                logger.info(f"Document {i + 1} similarity score: {doc.score:.4f}")
+                logger.debug(f"Document {i + 1} text preview: {doc.text[:100]}...")
 
-        logger.info(f"[rag] Chat messages:\n\n{messages}")
+            #FIXME: find proper score to filter
+            filtered_docs = [
+                doc for doc in searched_docs.related_documents 
+                if doc.score >= 0.0005
+            ]
+            
+            if filtered_docs:
+                logger.info(f"Selected {len(filtered_docs)} documents with scores >= 0.8:")
+                for i, doc in enumerate(filtered_docs):
+                    logger.info(f"Selected document {i + 1} score: {doc.score:.4f}")
+                
+                context = "\n\n".join(doc.text for doc in filtered_docs) 
+                content = "{context}\n\n{query}".format(context=context, query=query)
+                prompt_template = RAG_TEMPLATE
+            else:
+                logger.info("No documents passed similarity threshold (>= 0.8) switching to chat mode")
+                context = ""
+                prompt_template = CHAT_TEMPLATE
+        else:
+            # 검색 결과가 없는 경우
+            context = ""  # 컨텍스트 비우기
+            prompt_template = CHAT_TEMPLATE
+            logger.info("No search results found, using chat mode")
+
+        messages = item.messages[:-1] + [{"role": "user", "content": content or query}]
+
+        logger.info(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [rag] Chat messages:\n\n{messages}")
         
-
-        prompt_template = \
-            f"""        
-            다음 정보들을 참고하여 중요한 내용들에 집중하여 질문에 답변한다.
-            각 문맥별로 설명할 수 있는 부분을 설명한다.
-            알기 힘든 주식 및 금융 용어들은 부가적으로 설명한다.
-            복잡한 내용은 다시 풀어서 설명하도록 한다.
-            차근차근 답변하도록 한다.
-            이전 대화 내용은 문맥을 파악하기 위해 참고하되 굳이 다시 언급하지 않는다.
-            이전 대화 내용을 물어보면 같이 답변한다.
-            질문과 질문 관련 내용에 집중해서 답변한다.
-            사용자로부터 주어지는 정보는 질문뿐이다. 사용자는 질문 외에는 어떤 정보가 주어졌는지 알지 못하기 때문에 어떤 정보가 주어졌다고 언급하지 않는다.
-            질문 관련 내용은 이미 알고 있는 지식으로서 제공 받은 정보가 아니기 때문에 제공 받았다거나 주어진 정보라고 말하지 않는다.
-
-            이전 대화 내용 : {{history}}
-
-            질문 관련 내용: {{context}}
-
-            질문: {{query}}
-
-            답변:
-            """
-
         prompt = PromptTemplate(
             input_variables=["history", "context", "query"],
             template=prompt_template,
         )
 
-        qa_chain = LLMChain(
-            llm=llm,
-            prompt=prompt,
-            memory=memory,
-        )
+        # Create a runnable sequence
+        chain = prompt | llm
 
-        result = qa_chain.run({
+        # Use invoke with appropriate context
+        result = chain.invoke({
+            "history": memory.buffer,
             "context": context,
             "query": query
         })
@@ -91,9 +90,10 @@ async def rag(
             id=item.id,
             name=item.name,
             group_id=item.group_id,
-            answer=result,
+            answer=result.content if hasattr(result, 'content') else str(result),
             context=context
         )
+
     except Exception as e:
         logger.error(f"RAG 처리 중 오류 발생: {str(e)}")
         return RagOutput(

@@ -4,6 +4,7 @@ import torch
 from langchain.embeddings.base import Embeddings
 from typing import List, Dict, Any
 import logging
+import numpy as np
 
 from core.config import settings
 from models import Document, RetrievalOutput  # Add this import
@@ -42,6 +43,10 @@ def generate_text_embeddings(texts: List[str]) -> List[List[float]]:
             outputs = model(**inputs)
         embeddings.append(outputs.last_hidden_state[:, 0, :].squeeze().tolist())
     return embeddings
+
+#FIXME 지나치게 높은 거리값
+def l2_to_similarity(l2_distance: float) -> float:
+    return 1 / (1 + l2_distance)
 
 # ChromaDB에서 검색 수행
 def search_in_chromadb(
@@ -87,12 +92,14 @@ def search_in_chromadb(
 
         # 결과 변환
         documents = []
-        for idx, (doc, score) in enumerate(zip(results["documents"][0], results["distances"][0])):
+        for idx, (doc, distance) in enumerate(zip(results["documents"][0], results["distances"][0])):
+            similarity = l2_to_similarity(distance)
+            logger.info(f"Document {idx}: L2 distance = {distance:.4f}, Similarity = {similarity:.4f}")
             documents.append(Document(
                 id=f"doc_{idx}",
                 text=doc,
                 metadata={},
-                score=float(score)
+                score=similarity  # 변환된 유사도 점수 사용
             ))
 
         return RetrievalOutput(
