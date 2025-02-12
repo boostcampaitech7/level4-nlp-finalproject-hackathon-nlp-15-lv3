@@ -7,7 +7,7 @@ from langchain.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.memory import ConversationBufferWindowMemory
 
-from utils import ChatItem
+from models import ChatItem
 from services.llm import get_llm
 
 logger = logging.getLogger(__name__)

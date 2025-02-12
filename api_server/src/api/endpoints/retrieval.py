@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from utils import RetrievalItem, RetrievalOutput
+from models import RetrievalItem, RetrievalOutput
 
 router = APIRouter()
 

@@ -4,7 +4,7 @@ import asyncio
 import json
 from fastapi import APIRouter, Depends, Response
 from fastapi.responses import StreamingResponse as FastAPIStreamingResponse, JSONResponse
-from utils import ApiRequest, ApiResponse
+from models import ApiRequest, ApiResponse
 from services.llm import get_llm
 from services.retrieval import search_in_chromadb
 from core.config import settings

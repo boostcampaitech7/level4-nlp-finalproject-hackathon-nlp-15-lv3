@@ -4,7 +4,7 @@ from langchain.prompts import PromptTemplate
 import requests
 import logging
 
-from utils import RetrievalItem, RagItem, RagOutput, RetrievalOutput
+from models import RetrievalItem, RagItem, RagOutput, RetrievalOutput
 from services.llm import get_llm, get_memory
 from core.config import settings
 

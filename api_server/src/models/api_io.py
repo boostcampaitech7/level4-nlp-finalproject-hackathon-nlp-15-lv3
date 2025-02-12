@@ -70,9 +70,18 @@ class Message(BaseModel):
 
 class ChatRequest(BaseModel):
     """Chat API Request Body"""
+    uid: str
+    conversation_id: str
     messages: List[Message]
     stream: bool = False  # 스트리밍 여부 (기본값: False)
     top_k: int = 3       # RAG 검색 결과 개수 (기본값: 3)
+
+class ChatResponse(BaseModel):
+    """Chat API Response Body"""
+    answer: str
+    context: str
+    conversation_id: str  # 대화 식별을 위한 ID
+    uid: str             # 사용자 식별을 위한 ID
 
 class ApiResponse(BaseModel):
     context: List[str]

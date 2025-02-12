@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     collection_name: str = "pdf_text_collection"
     
     llm_settings: Dict[str, Any] = {
-        "model": "gemini-1.5-flash",
+        "model": "gemini-2.0-flash",
         "temperature": 0,
         "max_output_tokens": 1024,
     }

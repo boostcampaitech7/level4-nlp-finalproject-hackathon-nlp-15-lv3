@@ -6,7 +6,7 @@ from typing import List, Dict, Any
 import logging
 
 from core.config import settings
-from utils import RetrievalOutput  # Add this import
+from models import Document, RetrievalOutput  # Add this import
 logger = logging.getLogger(__name__)
 
 
@@ -67,12 +67,12 @@ def search_in_chromadb(
                 id="empty",
                 name="empty",
                 group_id="empty",
-                related_documents=[{
-                    "id": "empty_doc",  # Added id field
-                    "text": "현재 데이터베이스에 저장된 문서가 없습니다. 관리자에게 문의해주세요.",
-                    "metadata": {},
-                    "score": 0
-                }]
+                related_documents=[Document(
+                    id="empty_doc",
+                    text="현재 데이터베이스에 저장된 문서가 없습니다. 관리자에게 문의해주세요.",
+                    metadata={},
+                    score=0.0
+                )]
             )
 
         # ✅ 쿼리 임베딩 생성
@@ -88,12 +88,12 @@ def search_in_chromadb(
         # 결과 변환
         documents = []
         for idx, (doc, score) in enumerate(zip(results["documents"][0], results["distances"][0])):
-            documents.append({
-                "id": f"doc_{idx}",  # Added unique id for each document
-                "text": doc,
-                "metadata": {},
-                "score": float(score)
-            })
+            documents.append(Document(
+                id=f"doc_{idx}",
+                text=doc,
+                metadata={},
+                score=float(score)
+            ))
 
         return RetrievalOutput(
             id="search_result",
@@ -108,10 +108,10 @@ def search_in_chromadb(
             id="error",
             name="error",
             group_id="error",
-            related_documents=[{
-                "id": "error_doc",  # Added id field
-                "text": "검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
-                "metadata": {},
-                "score": 0
-            }]
+            related_documents=[Document(
+                id="error_doc",
+                text="검색 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+                metadata={},
+                score=0.0
+            )]
         )

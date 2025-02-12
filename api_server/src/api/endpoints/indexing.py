@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from utils import IndexingItem, IndexingOutput
+from models import IndexingItem, IndexingOutput
 
 router = APIRouter()
 
