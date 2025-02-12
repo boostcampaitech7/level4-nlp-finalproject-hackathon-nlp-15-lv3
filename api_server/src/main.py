@@ -1,8 +1,15 @@
 import uvicorn
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from api.router import api_router as router
 from core.config import settings
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 def create_app() -> FastAPI:
     app = FastAPI(title="Stock LLM API")
