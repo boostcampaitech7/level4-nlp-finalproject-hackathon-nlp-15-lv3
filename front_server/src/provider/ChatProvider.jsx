@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import {
@@ -20,6 +20,14 @@ export default function ChatProvider({ children }) {
   const [user, setUser] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [isFinishedConversation, setIsFinishedConversation] = useState(false);
+  const [conversationId, setConversationId] = useState(''); // 대화 세션 ID 추가
+
+  // 새로운 대화 세션 시작시 conversation_id 생성
+  useEffect(() => {
+    if (!conversationId) {
+      setConversationId(Date.now().toString());
+    }
+  }, []);
 
   const handleAssistantResponse = (response) => {
     setMessages((prevMessages) => [
@@ -43,42 +51,32 @@ export default function ChatProvider({ children }) {
   const getBotResponse = async (message) => {
     setIsTyping(true);
 
-    // 사용자 메시지 목록 구성
     const payload = {
-      id: 'test',
-      name: 'test',
-      group_id: 'test',
+      uid: user || 'anonymous',
+      conversation_id: conversationId,  // 현재 대화 세션 ID 사용
       messages: [
-        ...messages,
-        { role: 'user', content: message },
+        ...messages.map(msg => ({
+          role: msg.role,  // isUser 대신 role 직접 사용
+          content: msg.content
+        })),
+        { role: 'user', content: message }
       ],
-      max_query_size: 1024,
-      max_response_size: 4096,
-      top_k: 3,
       stream: false,
+      top_k: 3
     };
 
     try {
-      // 새 API 호출
       const response = await axios.post('http://localhost:30002/chat', payload);
-
-      // 2) API에서 반환된 데이터가 [{role: "...", content: "..."}] 형태라고 가정
-      const data = response.data; 
-      console.log('API Response:', data);
-      if (Array.isArray(data)) {
-        // 배열 형태라면 여러 메시지를 순회하여 각각 추가
-        data.forEach((msg) => {
-          if (msg.role === 'assistant') {
-            setMessages((prev) => [...prev, createNewAssistantMessage(msg.content)]);
-          } else if (msg.role === 'user') {
-            setMessages((prev) => [...prev, createNewUserMessage(msg.content)]);
-          } else {
-            // 필요한 경우 다른 역할도 처리
-          }
-        });
+      const data = response.data;
+      
+      // 응답 데이터 구조 확인 후 처리
+      console.log('API Response:', data); // 디버깅용
+      
+      if (data && data.answer) {
+        setMessages(prev => [...prev, createNewAssistantMessage(data.answer)]);
       } else {
-        // 배열이 아닌 경우(단일 객체 등) 처리
-        setMessages(prev => [...prev, createNewAssistantMessage(data)]);
+        console.error('Invalid response format:', data);
+        handleFallbackAssistantResponse();
       }
     } catch (error) {
       console.error('API Error:', error);
@@ -95,12 +93,14 @@ export default function ChatProvider({ children }) {
       id: prevMessages.length + 1,
       title: `Conversation ${user || 'user'} #${prevMessages.length + 1} - ${new Date().toLocaleString()}`,
       messages,
+      conversationId,  // 대화 기록에 conversation_id 저장
     }]);
     setUser('');
     setTimeout(() => {
       resetMessageIdCounter();
       setMessages([firstMessage]);
       setIsFinishedConversation(false);
+      setConversationId(Date.now().toString());  // 새로운 대화 세션 ID 생성
     }, 2000);
   };
 
