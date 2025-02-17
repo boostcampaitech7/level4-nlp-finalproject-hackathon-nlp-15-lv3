@@ -7,12 +7,12 @@ import logging
 from models import RetrievalItem, RagItem, RagOutput, RetrievalOutput
 from services.llm import get_llm, get_memory
 from core.config import settings
+from utils.prompts import WEB_RAG_TEMPLATE 
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
-@router.post("/search")
-async def web_search(item: RetrievalItem) -> RetrievalOutput:
+async def perform_web_search(item: RetrievalItem) -> RetrievalOutput:
     """웹 검색을 수행합니다."""
     query = item.query
 
@@ -56,7 +56,7 @@ async def web_rag(
     """웹 검색 결과를 기반으로 RAG를 수행합니다."""
     
     # 웹 검색 수행
-    related_documents = await web_search(
+    related_documents = await perform_web_search(
         RetrievalItem(
             id=item.id,
             name=item.name,
@@ -70,26 +70,9 @@ async def web_rag(
     # 검색 결과 결합
     context = "\n\n".join(doc.text for doc in related_documents.related_documents) if related_documents.related_documents else ""
 
-    prompt_template = """
-    다음 정보들을 참고하여 중요한 내용들에 집중하여 질문에 답변한다.
-    각 문맥별로 설명할 수 있는 부분을 설명한다.
-    알기 힘든 주식 및 금융 용어들은 부가적으로 설명한다.
-    복잡한 내용은 다시 풀어서 설명하도록 한다.
-    차근차근 답변하도록 한다.
-    ([title 또는 link](url))가 붙은 문장에 대해 답변을 생성할 때 해당 답변 바로 뒤에 해당 ([title 또는 link](url)) 양식 그대로 출력한다. 
-    이전 대화 내용은 문맥을 파악하기 위해 참고하되 굳이 다시 언급하지 않는다.
-    질문과 질문 관련 내용에 집중해서 답변한다.
-
-    이전 대화 내용: {history}
-    질문 관련 내용: {context}
-    질문: {query}
-
-    답변:
-    """
-
     prompt = PromptTemplate(
         input_variables=["history", "context", "query"],
-        template=prompt_template
+        template=WEB_RAG_TEMPLATE
     )
 
     qa_chain = LLMChain(

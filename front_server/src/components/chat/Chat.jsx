@@ -19,7 +19,12 @@ import ReactMarkdown from 'react-markdown';
 
 export default function Chat() {
   const {
-    messages, sendMessage, isTyping, isFinishedConversation,
+    messages, 
+    sendMessage, 
+    isTyping, 
+    isFinishedConversation,
+    useWebSearch,
+    setUseWebSearch,
   } = useContext(ChatContext);
   const [chatInput, setChatInput] = useState('');
   const lastMessageRef = useRef(null);
@@ -67,8 +72,24 @@ export default function Chat() {
     <section className="self-center">
       <Card className="w-[1200px]">
         <CardHeader>
-          <CardTitle>Chatbot</CardTitle>
-          <CardDescription>채팅으로 질문해보세요</CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Chatbot</CardTitle>
+              <CardDescription>채팅으로 질문해보세요</CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                웹 검색 {useWebSearch ? "켜짐" : "꺼짐"}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setUseWebSearch(!useWebSearch)}
+              >
+                {useWebSearch ? "웹 검색 끄기" : "웹 검색 켜기"}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[600px] w-full pr-4 mt-2">

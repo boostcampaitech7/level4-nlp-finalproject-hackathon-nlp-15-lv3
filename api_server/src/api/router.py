@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from api.endpoints import api, chat, indexing, rag, retrieval, web_search, recommend_questions
+from api.endpoints import api, chat, indexing, rag, retrieval, web_rag, recommend_questions
 
 # API 라우터 생성
 api_router = APIRouter()
@@ -30,9 +30,9 @@ api_router.include_router(
 )
 
 api_router.include_router(
-    web_search.router,
-    prefix="/web_search",
-    tags=["web_search"]
+    web_rag.router,
+    prefix="/web_rag",
+    tags=["web_rag"]
 )
 
 api_router.include_router(

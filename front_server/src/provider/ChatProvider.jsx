@@ -21,6 +21,7 @@ export default function ChatProvider({ children }) {
   const [isTyping, setIsTyping] = useState(false);
   const [isFinishedConversation, setIsFinishedConversation] = useState(false);
   const [conversationId, setConversationId] = useState(''); // 대화 세션 ID 추가
+  const [useWebSearch, setUseWebSearch] = useState(false);
 
   // 새로운 대화 세션 시작시 conversation_id 생성
   useEffect(() => {
@@ -62,20 +63,16 @@ export default function ChatProvider({ children }) {
         { role: 'user', content: message }
       ],
       stream: false,
-      top_k: 3
+      top_k: 3,
+      option: { web: useWebSearch }  // web 옵션 추가
     };
 
     try {
       const response = await axios.post('http://localhost:30002/chat', payload);
-      const data = response.data;
       
-      // 응답 데이터 구조 확인 후 처리
-      console.log('API Response:', data); // 디버깅용
-      
-      if (data && data.answer) {
-        setMessages(prev => [...prev, createNewAssistantMessage(data.answer)]);
+      if (response.data && response.data.answer) {
+        setMessages(prev => [...prev, createNewAssistantMessage(response.data.answer)]);
       } else {
-        console.error('Invalid response format:', data);
         handleFallbackAssistantResponse();
       }
     } catch (error) {
@@ -112,9 +109,9 @@ export default function ChatProvider({ children }) {
   const contextType = useMemo(
     () => (
       {
-        messages, sendMessage, historicMessages, isTyping, isFinishedConversation,
+        messages, sendMessage, historicMessages, isTyping, isFinishedConversation, useWebSearch, setUseWebSearch,
       }),
-    [messages, sendMessage, historicMessages, isTyping, isFinishedConversation],
+    [messages, sendMessage, historicMessages, isTyping, isFinishedConversation, useWebSearch, setUseWebSearch],
   );
 
   return (

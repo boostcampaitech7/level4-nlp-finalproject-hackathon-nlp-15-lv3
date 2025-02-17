@@ -75,6 +75,7 @@ class ChatRequest(BaseModel):
     messages: List[Message]
     stream: bool = False  # 스트리밍 여부 (기본값: False)
     top_k: int = 3       # RAG 검색 결과 개수 (기본값: 3)
+    option: Optional[Dict[str, Any]] = None # 추가 옵션
 
 class ChatResponse(BaseModel):
     """Chat API Response Body"""

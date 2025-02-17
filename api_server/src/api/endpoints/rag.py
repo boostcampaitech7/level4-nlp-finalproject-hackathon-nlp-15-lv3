@@ -4,7 +4,7 @@ from langchain.prompts import PromptTemplate
 from models import RagItem, RagOutput, RetrievalItem
 from core.config import settings
 from services.retrieval import search_in_chromadb
-from services.llm import get_llm, get_memory
+from services.llm import get_llm
 from utils.prompts import RAG_TEMPLATE, CHAT_TEMPLATE
 
 import logging
