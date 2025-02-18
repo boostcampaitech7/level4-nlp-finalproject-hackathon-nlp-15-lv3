@@ -1,7 +1,6 @@
 from functools import lru_cache
 from fastapi import Depends
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.memory import ConversationBufferWindow, ConversationBufferMemory
 from core.config import settings
 from .redis_memory import RedisMemory
 

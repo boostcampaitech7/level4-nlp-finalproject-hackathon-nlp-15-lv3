@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends
-from langchain.chains import LLMChain
 from langchain.prompts import PromptTemplate
 import requests
 import logging
@@ -7,7 +6,9 @@ import logging
 from models import RetrievalItem, RagItem, RagOutput, RetrievalOutput
 from services.llm import get_llm, get_memory
 from core.config import settings
-from utils.prompts import WEB_RAG_TEMPLATE 
+from utils.prompts import WEB_RAG_TEMPLATE
+
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -15,7 +16,6 @@ router = APIRouter()
 async def perform_web_search(item: RetrievalItem) -> RetrievalOutput:
     """웹 검색을 수행합니다."""
     query = item.query
-
     url = f"https://www.googleapis.com/customsearch/v1?key={settings.GOOGLE_SEARCH_API_KEY}&cx={settings.GOOGLE_CX}&q={query}"
     response = requests.get(url)
     data = response.json()
@@ -23,7 +23,7 @@ async def perform_web_search(item: RetrievalItem) -> RetrievalOutput:
     docs = []
     if "items" in data:
         for i, web_item in enumerate(data['items'], start=1):
-            doc = {'id':str(i), 'text': "", 'metadata': {}, 'score':1}
+            doc = {'id': str(i), 'text': "", 'metadata': {}, 'score': 1}
             if 'snippet' in web_item:
                 doc['text'] = web_item['snippet']
             if 'link' in web_item:
@@ -35,8 +35,7 @@ async def perform_web_search(item: RetrievalItem) -> RetrievalOutput:
                 doc['metadata'] = web_item['metadata'][0]
             elif 'metatags' in web_item:
                 doc['metadata'] = web_item['metatags'][0]
-            
-            docs += [doc]
+            docs.append(doc)
     else:
         logger.warning("Web search results not found.")
 
@@ -75,21 +74,30 @@ async def web_rag(
         template=WEB_RAG_TEMPLATE
     )
 
-    qa_chain = LLMChain(
-        llm=llm,
-        prompt=prompt,
-        memory=memory
-    )
+    # Create a runnable sequence (rag.py와 같은 방식)
+    chain = prompt | llm
 
-    result = qa_chain.run({
+    # Redis 메모리에서 대화 이력 로드
+    memory_variables = memory.load_memory_variables({}) if memory else {}
+    history_buffer = memory_variables.get(memory.memory_key, []) if memory else []
+    
+    result = chain.invoke({
+        "history": history_buffer,
         "context": context,
         "query": item.query
     })
+
+    answer = result.content if hasattr(result, 'content') else str(result)
+    if memory:
+        memory.save_context(
+            {"input": item.query}, 
+            {"output": answer}
+        )
 
     return RagOutput(
         id=item.id,
         name=item.name,
         group_id=item.group_id,
-        answer=result,
+        answer=answer,
         context=context
     )

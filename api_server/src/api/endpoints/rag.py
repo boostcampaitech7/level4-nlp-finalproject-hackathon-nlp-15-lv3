@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from langchain.prompts import PromptTemplate
+from services.redis_memory import RedisMemory  # Redis 메모리 import 추가
 
 from models import RagItem, RagOutput, RetrievalItem
 from core.config import settings
@@ -18,12 +19,9 @@ logger = logging.getLogger(__name__)
 async def rag(
     item: RagItem,
     llm = Depends(get_llm),
-    memory = None
+    memory: RedisMemory = None  # 타입 힌트 추가
 ) -> RagOutput:
     try:
-        # Remove memory loading
-        # memory = get_memory(item.id)
-        
         # Add delay before making the LLM call
         time.sleep(1)  # 1 second delay
         
@@ -67,10 +65,6 @@ async def rag(
             context = ""  # 컨텍스트 비우기
             prompt_template = CHAT_TEMPLATE
             logger.info("No search results found, using chat mode")
-
-        messages = item.messages[:-1] + [{"role": "user", "content": content or query}]
-
-        logger.info(f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] [rag] Chat messages:\n\n{messages}")
         
         prompt = PromptTemplate(
             input_variables=["history", "context", "query"],
@@ -80,8 +74,9 @@ async def rag(
         # Create a runnable sequence
         chain = prompt | llm
 
-        # Use provided memory if available
-        history_buffer = memory.buffer if memory else []
+        # Redis 메모리에서 대화 이력 로드
+        memory_variables = memory.load_memory_variables({}) if memory else {}
+        history_buffer = memory_variables.get(memory.memory_key, []) if memory else []
         
         result = chain.invoke({
             "history": history_buffer,
@@ -89,12 +84,20 @@ async def rag(
             "query": query
         })
 
+        # 응답 저장
+        answer = result.content if hasattr(result, 'content') else str(result)
+        if memory:
+            memory.save_context(
+                {"input": query}, 
+                {"output": answer}
+            )
+
         return RagOutput(
             id=item.id,
             name=item.name,
             group_id=item.group_id,
-            answer=result.content if hasattr(result, 'content') else str(result),
-            context=context
+            answer=answer,
+            context=""
         )
 
     except Exception as e:

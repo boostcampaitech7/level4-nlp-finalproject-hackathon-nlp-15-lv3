@@ -52,26 +52,40 @@ export default function ChatProvider({ children }) {
   const getBotResponse = async (message) => {
     setIsTyping(true);
 
+    
     const payload = {
       uid: user || 'anonymous',
-      conversation_id: conversationId,  // 현재 대화 세션 ID 사용
-      messages: [
-        ...messages.map(msg => ({
-          role: msg.role,  // isUser 대신 role 직접 사용
-          content: msg.content
-        })),
+      conversation_id: conversationId,
+      message: 
         { role: 'user', content: message }
-      ],
+      ,
       stream: false,
       top_k: 3,
-      option: { web: useWebSearch }  // web 옵션 추가
+      option: { 
+        web: useWebSearch  // 웹 검색 옵션
+      }
     };
-
     try {
-      const response = await axios.post('http://localhost:30002/chat', payload);
+      // axios 설정 추가
+      const response = await axios.post('http://localhost:30002/chat', payload, {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
       
-      if (response.data && response.data.answer) {
-        setMessages(prev => [...prev, createNewAssistantMessage(response.data.answer)]);
+      // 응답 처리
+      if (response.data) {
+        const newMessage = createNewAssistantMessage(
+          response.data.answer,  // 답변 텍스트
+          null,                  // options (있다면 추가)
+          response.data.context  // context를 reference로 사용
+        );
+        setMessages(prev => [...prev, newMessage]);
+
+        // 메모리에 대화 저장
+        if (response.data.conversation_id) {
+          setConversationId(response.data.conversation_id);
+        }
       } else {
         handleFallbackAssistantResponse();
       }

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 class Utterance(BaseModel):
     role: str
     content: str
+    metadata: Optional[Dict[str, Any]] = None
 
 class Document(BaseModel):
     id: str
@@ -35,7 +36,7 @@ class RetrievalOutput(Identification):
     related_documents: List[Document] = []
 
 class ChatItem(Identification):
-    messages: List[Utterance] = []
+    message: List[Utterance] = []
     max_query_size: int = 1024
     max_response_size: int = 4096
     top_k: int = 3
@@ -72,7 +73,7 @@ class ChatRequest(BaseModel):
     """Chat API Request Body"""
     uid: str
     conversation_id: str
-    messages: List[Message]
+    message: Utterance
     stream: bool = False  # 스트리밍 여부 (기본값: False)
     top_k: int = 3       # RAG 검색 결과 개수 (기본값: 3)
     option: Optional[Dict[str, Any]] = None # 추가 옵션
@@ -80,7 +81,7 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     """Chat API Response Body"""
     answer: str
-    context: str
+    context: str = ""
     conversation_id: str  # 대화 식별을 위한 ID
     uid: str             # 사용자 식별을 위한 ID
 

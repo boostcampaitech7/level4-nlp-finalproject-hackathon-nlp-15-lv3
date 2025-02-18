@@ -5,7 +5,7 @@ import json
 from fastapi import APIRouter, Depends, Response, HTTPException
 from fastapi.responses import StreamingResponse as FastAPIStreamingResponse
 from models import ChatRequest, ChatResponse, RagItem, Utterance
-from services.llm import get_llm, get_memory, conv_memories  # conv_memories 추가
+from services.llm import get_llm, get_memory
 from .rag import rag
 from .web_rag import web_rag
 
@@ -17,7 +17,8 @@ async def chat(
     llm = Depends(get_llm)
 ) -> Union[ChatResponse, FastAPIStreamingResponse]:
     """챗봇 대화 API"""
-    
+    print(request)
+    print(request.conversation_id)
     # Load conversation memory
     memory = get_memory(request.conversation_id)
     
@@ -28,7 +29,7 @@ async def chat(
         elif memory.get_user_id() != request.uid:  # 권한 체크
             raise HTTPException(status_code=403, detail="permission denied")
         
-        messages = memory.messages  # Redis에서 메시지 이력 조회
+        messages = memory.get_messages()  # Redis에서 메시지 이력 조회
         return ChatResponse(
             answer="",
             context=messages,
@@ -36,27 +37,35 @@ async def chat(
             uid=request.uid
         )
     
-    # Convert Message objects to Utterance objects
-    utterances = [
-        Utterance(role=msg.role, content=msg.content) 
-        for msg in request.messages
-    ]
-    
-    item = RagItem(
-        id=request.conversation_id,
-        name=request.uid,
-        group_id="chat",
-        messages=utterances,
-        query=request.messages[-1].content,
-        top_k=request.top_k,
-        stream=request.stream
-    )
-
     # 대화 권한 체크 및 소유자 설정
     if not memory.get_user_id():
         memory.set_user_id(request.uid)
     elif memory.get_user_id() != request.uid:
         raise HTTPException(status_code=403, detail="permission denied")
+
+    # 새 메시지를 메모리에 추가
+    memory.add_message("user", request.message.content)
+
+    # 메모리에서 이전 대화 내용 가져오기
+    previous_messages = memory.get_messages()
+    
+    # Convert messages to Utterances
+    utterances = [
+        Utterance(
+            role=msg["role"],
+            content=msg["content"]
+        ) for msg in previous_messages
+    ]
+
+    item = RagItem(
+        id=request.conversation_id,
+        name=request.uid,
+        group_id="chat",
+        messages=utterances,
+        query=request.message.content,
+        top_k=request.top_k,
+        stream=request.stream
+    )
     
     if request.option and request.option.get("web"):
         result = await web_rag(
@@ -70,6 +79,9 @@ async def chat(
             llm=llm,
             memory=memory
         )
+
+    # 응답 메시지를 메모리에 추가
+    memory.add_message("assistant", result.answer)
 
     contents = re.split("( )", result.answer)
 
