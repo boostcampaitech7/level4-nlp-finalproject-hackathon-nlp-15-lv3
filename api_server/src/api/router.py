@@ -1,8 +1,14 @@
 from fastapi import APIRouter
-from api.endpoints import api, chat, indexing, rag, retrieval, web_rag, recommend_questions
+from api.endpoints import api, chat, indexing, rag, retrieval, web_rag, recommend_questions, auth  # auth 모듈 import 추가
 
 # API 라우터 생성
 api_router = APIRouter()
+
+# auth 라우터 등록
+api_router.include_router(
+    auth.router, 
+    prefix="/auth", 
+    tags=["auth"])
 
 # 각 엔드포인트 라우터 등록
 api_router.include_router(
@@ -46,6 +52,7 @@ api_router.include_router(
     prefix="/api",
     tags=["api"]
 )
+
 
 # 라우터 export
 __all__ = ["api_router"]

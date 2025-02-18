@@ -1,11 +1,15 @@
 import React from 'react';
-import { Chat, Header } from '@/components';
+import { Header } from '@/components';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
+import Chat from '@/components/chat/Chat';
 
 export default function Home() {
   return (
     <main className="flex flex-col max-w-5xl m-auto min-h-screen">
       <Header />
-      <Chat />
+      <ProtectedRoute>
+        <Chat />
+      </ProtectedRoute>
     </main>
   );
 }
