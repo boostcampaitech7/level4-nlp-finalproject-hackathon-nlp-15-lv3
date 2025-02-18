@@ -16,6 +16,7 @@ import UserMessage from './UserMessage';
 import BotMessageWithReference from './BotMessageWithReference';
 import LoadingDots from './LoadingDots';
 import ReactMarkdown from 'react-markdown';
+import { Globe } from 'lucide-react';
 
 export default function Chat() {
   const {
@@ -25,6 +26,7 @@ export default function Chat() {
     isFinishedConversation,
     useWebSearch,
     setUseWebSearch,
+    conversationId,  // ChatContext에서 conversationId 추가
   } = useContext(ChatContext);
   const [chatInput, setChatInput] = useState('');
   const lastMessageRef = useRef(null);
@@ -74,20 +76,17 @@ export default function Chat() {
         <CardHeader>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle>Chatbot</CardTitle>
-              <CardDescription>채팅으로 질문해보세요</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                웹 검색 {useWebSearch ? "켜짐" : "꺼짐"}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setUseWebSearch(!useWebSearch)}
-              >
-                {useWebSearch ? "웹 검색 끄기" : "웹 검색 켜기"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <CardTitle>Chatbot</CardTitle>
+                {conversationId && (
+                  <span className="text-xs px-2 py-1 bg-muted rounded-full text-muted-foreground">
+                    ID: {conversationId.slice(-6)}
+                  </span>
+                )}
+              </div>
+              <CardDescription>
+                채팅으로 질문해보세요
+              </CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -109,13 +108,23 @@ export default function Chat() {
           </ScrollArea>
         </CardContent>
         <CardFooter>
-          <form onSubmit={handleSubmit} className="w-full flex gap-2">
+          <form onSubmit={handleSubmit} className="w-full flex gap-2 items-center">
             <Input
               placeholder="How can I help you?"
               value={chatInput}
               disabled={isFinishedConversation}
               onChange={(e) => setChatInput(e.target.value)}
             />
+            <Button
+              type="button"
+              variant={useWebSearch ? "default" : "outline"}
+              size="icon"
+              disabled={isFinishedConversation}
+              onClick={() => setUseWebSearch(!useWebSearch)}
+              className="w-10 h-10 p-2"
+            >
+              <Globe className="h-7 w-7" />
+            </Button>
             <Button disabled={isFinishedConversation} type="submit">Send</Button>
           </form>
         </CardFooter>
