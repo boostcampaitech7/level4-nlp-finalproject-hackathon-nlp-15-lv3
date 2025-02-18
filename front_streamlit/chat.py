@@ -236,7 +236,7 @@ def chat(args: argparse.Namespace) -> None:
         with cont.container():
             with st.status("Answering...", expanded=False):
                 if do_web_search:
-                    response = request_api(st.session_state.messages, args.server_api+"/chat_web")
+                    response = request_api(st.session_state.messages, args.server_api+"/chat_web/chat_web")
                 else:
                     response = request_api(st.session_state.messages, args.chat_api)
         cont.empty()
@@ -262,7 +262,7 @@ def chat(args: argparse.Namespace) -> None:
         cont = st.empty()
         with cont.container():
             with st.status("Recommended questions:", expanded=True):
-                response = request_api(st.session_state.messages, args.server_api+"/recommend_questions")
+                response = request_api(st.session_state.messages, args.server_api+"/recommend")
         
 
                 #st.write_stream(stream_generator(response))
@@ -322,8 +322,8 @@ if __name__ == "__main__":
         st.session_state["db_exists"] = True
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--server_api", type=str, default="http://localhost:8000/")
-    parser.add_argument("--chat_api", type=str, default="http://localhost:8000/chat")
+    parser.add_argument("--server_api", type=str, default="http://localhost:30002/")
+    parser.add_argument("--chat_api", type=str, default="http://localhost:30002/chat")
     parser.add_argument("--title", type=str, default="RAG Chatbot Demo")
     main(parser.parse_args())
 

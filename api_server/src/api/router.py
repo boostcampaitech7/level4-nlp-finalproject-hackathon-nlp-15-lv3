@@ -36,6 +36,12 @@ api_router.include_router(
 )
 
 api_router.include_router(
+    web_search.router,
+    prefix="/chat_web",
+    tags=["chat_web"]
+)
+
+api_router.include_router(
     recommend_questions.router,
     prefix="/recommend",
     tags=["recommend"]
