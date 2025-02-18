@@ -133,7 +133,7 @@ def process_all_pdfs_in_directory(directory, collection_name):
         process_pdf_to_chromadb(pdf_path, collection_name)
 
 if __name__ == "__main__":
-    directory_path = "/data/ephemeral/home/lsu/final/level4-nlp-finalproject-hackathon-nlp-15-lv3/data" # 저장할 PDF폴더 경로로
+    directory_path = "/data/ephemeral/home/level4-nlp-finalproject-hackathon-nlp-15-lv3/data" # 저장할 PDF폴더 경로로
     collection_name = "pdf_text_collection" # 컬렉션 이름름
 
     process_all_pdfs_in_directory(directory_path, collection_name)
