@@ -49,6 +49,24 @@ export default function ChatProvider({ children }) {
     }
   };
 
+  const parseReferences = (contextStr) => {
+    if (!contextStr) return [];
+    
+    // 정규식을 사용하여 링크 패턴 매칭
+    const pattern = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const references = [];
+    let match;
+  
+    while ((match = pattern.exec(contextStr)) !== null) {
+      references.push({
+        title: match[1],
+        url: match[2]
+      });
+    }
+  
+    return references;
+  };
+
   const getBotResponse = async (message) => {
     setIsTyping(true);
 
@@ -75,14 +93,14 @@ export default function ChatProvider({ children }) {
       
       // 응답 처리
       if (response.data) {
+        const references = parseReferences(response.data.context);
         const newMessage = createNewAssistantMessage(
-          response.data.answer,  // 답변 텍스트
-          null,                  // options (있다면 추가)
-          response.data.context  // context를 reference로 사용
+          response.data.answer,
+          null,
+          references  // 파싱된 참조 배열 전달
         );
         setMessages(prev => [...prev, newMessage]);
-
-        // 메모리에 대화 저장
+        
         if (response.data.conversation_id) {
           setConversationId(response.data.conversation_id);
         }
